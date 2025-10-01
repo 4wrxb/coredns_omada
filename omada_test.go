@@ -47,6 +47,27 @@ func testZones() map[string]*file.Zone {
 	return zones
 }
 
+func testZonesWithFallback() map[string]*file.Zone {
+	zones := testZones()
+
+	// Add a fallback record (wildcard) to the zone
+	fallbackIP := "10.0.0.100" // Fallback IP for any unresolved queries
+
+	wildcardName := "*.omada.test."
+	wildcardA := &dns.A{
+		Hdr: dns.RR_Header{
+			Name:   wildcardName,
+			Rrtype: dns.TypeA,
+			Class:  dns.ClassINET,
+			Ttl:    300,
+		},
+		A: net.ParseIP(fallbackIP),
+	}
+	zones["omada.test."].Insert(wildcardA)
+
+	return zones
+}
+
 func testHandler() test.HandlerFunc {
 	return func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 		state := request.Request{W: w, Req: r}
@@ -114,6 +135,51 @@ func TestOmada(t *testing.T) {
 		},
 	}
 	executeTestCases(t, testOmada, tests)
+
+}
+
+func TestOmadaWithFallback(t *testing.T) {
+
+	var testOmadaWithFallback = &Omada{
+		Next:      testHandler(),
+		zoneNames: []string{"omada.test.", ptrZone},
+		zones:     testZonesWithFallback(),
+	}
+
+	tests := []testCases{
+		// Existing record should work normally
+		{
+			qname:      "client1.omada.test.",
+			qtype:      dns.TypeA,
+			wantAnswer: []string{"client1.omada.test.	60	IN	A	192.168.0.101"},
+		},
+		// Non-existent record should fallback to wildcard
+		{
+			qname:      "nonexistent.omada.test.",
+			qtype:      dns.TypeA,
+			wantAnswer: []string{"nonexistent.omada.test.	300	IN	A	10.0.0.100"},
+		},
+		// Another non-existent record should also fallback
+		{
+			qname:      "app.omada.test.",
+			qtype:      dns.TypeA,
+			wantAnswer: []string{"app.omada.test.	300	IN	A	10.0.0.100"},
+		},
+		// SOA record should still work
+		{
+			qname:      "omada.test.",
+			qtype:      dns.TypeSOA,
+			wantAnswer: []string{"omada.test.	300	IN	SOA	ns.omada.test. hostmaster.omada.test. 1 7200 3600 86400 300"},
+		},
+		// Query outside managed zone should still go to next handler
+		{
+			qname:        "client.example.com.",
+			qtype:        dns.TypeA,
+			wantRetCode:  dns.RcodeServerFailure,
+			wantMsgRCode: dns.RcodeServerFailure,
+		},
+	}
+	executeTestCases(t, testOmadaWithFallback, tests)
 
 }
 

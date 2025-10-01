@@ -13,6 +13,7 @@ Example corefiles are located [here](../corefile-examples)
 | site                      | ✅        | string   | name of the site from the Omada controller (note this is a regex pattern)                                                                                    |
 | username                  | ✅        | string   | Omada controller username                                                                                                                                    |
 | password                  | ✅        | string   | Omada controller password                                                                                                                                    |
+| fallback                  | ❌        | string   | IPv4 address, FQDN, or hostname to redirect unresolved queries within managed zones. Creates wildcard DNS records automatically. Empty string disables fallback |
 | refresh_minutes           | ❌        | int      | How often to refresh the zones (default 1 minute)                                                                                                            |
 | refresh_login_hours       | ❌        | int      | How often to refresh the login token (default 24 hours)                                                                                                      |
 | resolve_clients           | ❌        | bool     | Whether to resolve client addresses (default true)                                                                                                                        |
@@ -51,3 +52,15 @@ It is possible to create a dummy DHCP reservation in the Omada controller to cre
     - Example: ![image](dhcp-reservation.png)
 
 Note that wildcard records are supported by setting the client name to `*.<subdomain>` e.g `*.apps`.
+
+## Fallback Configuration
+
+The `fallback` option provides automatic creation of a wildcard record. This is useful for automatically drecting to a reverse proxy across all zones. The created wildcard entry can also have a duplicate IP address to existing hostname records (unlike custom DNS records created by DHCP reservation).
+
+The fallback can be configured as:
+
+- **IP address**: Direct IP redirection (e.g., `192.168.1.100`)
+- **FQDN**: Fully qualified domain name (e.g., `proxy.omada.home`)
+- **Hostname**: Simple hostname that exists in your zones (e.g., `proxy`)
+
+The FQDN and Hostname configurations must be able to resolve within the configured zones during updates as the wildcard entry will create an IP record.

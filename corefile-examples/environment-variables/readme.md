@@ -4,8 +4,9 @@ This example sources the values from environment variables using the convention 
 
 * `controller_url` -> from the `OMADA_URL` environment variable
 * `site` -> from the `OMADA_SITE` environment variable
-* `username` -> from the `OMADA_URL` environment variable
-* `password` -> from the `OMADA_URL` environment variable
+* `username` -> from the `OMADA_USERNAME` environment variable
+* `password` -> from the `OMADA_PASSWORD` environment variable
+* `fallback` -> from the `FALLBACK_HOST` environment variable (optional - empty string disables fallback)
 * `forward` server -> from the `UPSTREAM_DNS` environment variable
 
 

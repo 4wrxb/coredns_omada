@@ -1,6 +1,7 @@
 package coredns_omada
 
 import (
+	"regexp"
 	"strconv"
 	"time"
 
@@ -21,6 +22,7 @@ type config struct {
 	resolve_dhcp_reservations bool          // resolve static 'dhcp reservations'
 	stale_record_duration     time.Duration // duration to keep serving stale records for clients no longer present in the controller)
 	ignore_startup_errors     bool          // ignore any errors during the initial zone refresh
+	fallback                  string        // fallback target when original lookup fails (FQDN, hostname, or IP address)
 }
 
 func parse(c *caddy.Controller) (config config, err error) {
@@ -125,6 +127,34 @@ func parse(c *caddy.Controller) (config config, err error) {
 				if err != nil {
 					return config, c.ArgErr()
 				}
+
+			case "fallback":
+				if !c.NextArg() {
+					return config, c.ArgErr()
+				}
+				fallbackValue := c.Val()
+
+				// Basic validation: check reasonable length
+				if len(fallbackValue) > 253 {
+					return config, c.Errf("fallback too long (max 253 characters): %q", fallbackValue)
+				}
+
+				// Validate characters for domain/hostname/IPv4 (if not empty)
+				if len(fallbackValue) > 0 {
+					// Check valid characters and no consecutive dots
+					validChars := regexp.MustCompile(`^[a-zA-Z0-9.-]+$`)
+					noConsecutiveDots := regexp.MustCompile(`\.\.`)
+					// Check each label doesn't start/end with hyphen
+					invalidLabels := regexp.MustCompile(`(^|\.)-|-(\.|$)`)
+
+					if !validChars.MatchString(fallbackValue) ||
+						noConsecutiveDots.MatchString(fallbackValue) ||
+						invalidLabels.MatchString(fallbackValue) {
+						return config, c.Errf("fallback contains invalid characters: %q", fallbackValue)
+					}
+				}
+
+				config.fallback = fallbackValue
 
 			default:
 				return config, c.Errf("unknown property: %q", c.Val())

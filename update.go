@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/coredns/coredns/plugin/file"
@@ -260,6 +261,10 @@ func (o *Omada) updateZones() error {
 			addSoaRecord(zones[dnsDomain], dnsDomain)
 		}
 		domainRecords.purgeStaleRecords(o.config.stale_record_duration.Seconds())
+
+		// Add fallback record to zone if configured and applicable
+		o.addFallbackRecord(zones, dnsDomain, domainRecords)
+
 		for _, v := range domainRecords.ARecords {
 			zones[dnsDomain].Insert(v.record)
 		}
@@ -310,4 +315,73 @@ func (d *DnsRecords) purgeStaleRecords(maxAgeSeconds float64) {
 			log.Debugf("purging stale record: %s", k)
 		}
 	}
+}
+
+// addFallbackRecord adds wildcard fallback records for unresolved queries in each zone
+func (o *Omada) addFallbackRecord(zones map[string]*file.Zone, dnsDomain string, domainRecords DnsRecords) {
+	if o.config.fallback == "" {
+		return // No fallback configured
+	}
+
+	log.Debugf("update: adding fallback %s record for zone: %s", o.config.fallback, dnsDomain)
+
+	// Determine fallback IP based on configuration
+	var fallbackIP net.IP
+
+	// Case 1: fallback is an IP address
+	if ip := net.ParseIP(o.config.fallback); ip != nil {
+		fallbackIP = ip
+		log.Debugf("update: fallback is IP: %s", fallbackIP.String())
+	} else {
+		// Case 2 & 3: fallback is FQDN or hostname
+		var targetFQDN string
+
+		// Check if it contains dots (FQDN) or is just a hostname
+		if strings.Contains(o.config.fallback, ".") {
+			// Case 2: FQDN - use as-is
+			targetFQDN = dns.Fqdn(o.config.fallback)
+		} else {
+			// Case 3: hostname - append current zone
+			targetFQDN = fmt.Sprintf("%s.%s", o.config.fallback, dnsDomain)
+		}
+
+		log.Debugf("update: looking for fallback FQDN: %s", targetFQDN)
+
+		// Search all zones for the target FQDN
+		fallbackIP = o.resolveInZones(targetFQDN)
+		if fallbackIP == nil {
+			log.Warningf("update: fallback '%s' not found in any zone, skipping fallback for zone %s",
+				o.config.fallback, dnsDomain)
+			return
+		}
+
+		log.Debugf("update: found fallback IP: %s for FQDN: %s", fallbackIP.String(), targetFQDN)
+	}
+
+	// Create wildcard A record for this zone pointing to the fallback IP
+	wildcardName := fmt.Sprintf("*.%s", dnsDomain)
+	fallbackRecord := &dns.A{
+		Hdr: dns.RR_Header{
+			Name:   wildcardName,
+			Rrtype: dns.TypeA,
+			Class:  dns.ClassINET,
+			Ttl:    300,
+		},
+		A: fallbackIP,
+	}
+	zones[dnsDomain].Insert(fallbackRecord)
+	log.Debugf("update: added wildcard fallback record: %s -> %s", wildcardName, fallbackIP.String())
+}
+
+// resolveInZones searches all current records for an FQDN and returns its IP
+func (o *Omada) resolveInZones(targetFQDN string) net.IP {
+	// Search in current records map
+	for _, domainRecords := range o.records {
+		for fqdn, aRecord := range domainRecords.ARecords {
+			if fqdn == targetFQDN {
+				return aRecord.record.A
+			}
+		}
+	}
+	return nil
 }

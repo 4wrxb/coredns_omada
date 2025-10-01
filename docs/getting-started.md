@@ -52,6 +52,9 @@ Note: If you do not have a valid https certificate on your controller then set t
 * `OMADA_PASSWORD`
 * `UPSTREAM_DNS`
 
+Optional environment variables:
+* `FALLBACK_HOST` - IP address, FQDN, or hostname for fallback DNS resolution
+
 Note: If you do not have a valid https certificate on your controller then set the `OMADA_DISABLE_HTTPS_VERIFICATION` environment variable to true
 
 Example docker run command:
@@ -66,6 +69,7 @@ docker run \
 --env OMADA_IGNORE_STARTUP_ERRORS="false" \
 --env OMADA_DISABLE_HTTPS_VERIFICATION="false" \
 --env UPSTREAM_DNS="8.8.8.8" \
+--env FALLBACK_HOST="<FALLBACK_HOST>" \
 ghcr.io/dougbw/coredns_omada:latest
 ```
 

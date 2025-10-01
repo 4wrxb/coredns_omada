@@ -9,6 +9,7 @@ coredns_omada is a [CoreDNS plugin](https://coredns.io/manual/plugins/) which re
 - Reverse DNS
 - Wildcard records
 - Multiple site support
+- Fallback configuration for unresolved queries (i.e. for reverse proxy setups)
 
 # Docs
 

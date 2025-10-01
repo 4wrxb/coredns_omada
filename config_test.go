@@ -24,6 +24,33 @@ func TestConfig(t *testing.T) {
 			stale_record_duration 10m
 }`, false},
 
+		// valid config with fallback IP
+		{`omada {
+			controller_url https://10.0.0.1
+			username test
+			password test
+			site .*
+			fallback 192.168.1.100
+}`, false},
+
+		// valid config with fallback FQDN
+		{`omada {
+			controller_url https://10.0.0.1
+			username test
+			password test
+			site .*
+			fallback caddy.omada.home
+}`, false},
+
+		// valid config with fallback hostname
+		{`omada {
+			controller_url https://10.0.0.1
+			username test
+			password test
+			site .*
+			fallback caddy
+}`, false},
+
 		// missing required property: controller url
 		{`omada {
 			username test
@@ -122,6 +149,51 @@ func TestConfig(t *testing.T) {
 			password test
 			site .*
 			ignore_startup_errors zzz
+}`, true},
+
+		// valid config with empty fallback (no fallback configured)
+		{`omada {
+			controller_url https://10.0.0.1
+			username test
+			password test
+			site .*
+			fallback ""
+}`, false},
+
+		// invalid value: fallback too long
+		{`omada {
+			controller_url https://10.0.0.1
+			username test
+			password test
+			site .*
+			fallback ` + "verylongfallbackdomainnamethatexceedsthe253characterlimitfordnsdomainnamesandshouldberejectedduetobeingtoolargeforvaliddomainnamespecificationsaccordingtointernetstandardswhichspecifythemaximumlengthfordomainnamestonotexceed253charactersintotallengthhereismoretexttoensurewereachthatlimitandcauseavalidationfailure" + `
+}`, true},
+
+		// invalid value: fallback with invalid characters
+		{`omada {
+			controller_url https://10.0.0.1
+			username test
+			password test
+			site .*
+			fallback "invalid@domain"
+}`, true},
+
+		// invalid value: fallback with hyphen in label
+		{`omada {
+			controller_url https://10.0.0.1
+			username test
+			password test
+			site .*
+			fallback "api.-server.example.com"
+}`, true},
+
+		// invalid value: fallback with IPv6 address (not supported)
+		{`omada {
+			controller_url https://10.0.0.1
+			username test
+			password test
+			site .*
+			fallback "2001:db8::1"
 }`, true},
 	}
 
