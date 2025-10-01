@@ -59,7 +59,7 @@ func testZonesWithFallback() map[string]*file.Zone {
 			Name:   wildcardName,
 			Rrtype: dns.TypeA,
 			Class:  dns.ClassINET,
-			Ttl:    300,
+			Ttl:    60,
 		},
 		A: net.ParseIP(fallbackIP),
 	}
@@ -157,13 +157,13 @@ func TestOmadaWithFallback(t *testing.T) {
 		{
 			qname:      "nonexistent.omada.test.",
 			qtype:      dns.TypeA,
-			wantAnswer: []string{"nonexistent.omada.test.	300	IN	A	10.0.0.100"},
+			wantAnswer: []string{"nonexistent.omada.test.	60	IN	A	10.0.0.100"},
 		},
 		// Another non-existent record should also fallback
 		{
 			qname:      "app.omada.test.",
 			qtype:      dns.TypeA,
-			wantAnswer: []string{"app.omada.test.	300	IN	A	10.0.0.100"},
+			wantAnswer: []string{"app.omada.test.	60	IN	A	10.0.0.100"},
 		},
 		// SOA record should still work
 		{

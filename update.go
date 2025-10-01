@@ -365,7 +365,7 @@ func (o *Omada) addFallbackRecord(zones map[string]*file.Zone, dnsDomain string,
 			Name:   wildcardName,
 			Rrtype: dns.TypeA,
 			Class:  dns.ClassINET,
-			Ttl:    300,
+			Ttl:    60,
 		},
 		A: fallbackIP,
 	}

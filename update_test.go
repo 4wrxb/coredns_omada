@@ -187,12 +187,12 @@ func TestUpdateWithFallback(t *testing.T) {
 		{ // non-existent record should fallback to wildcard
 			qname:      "nonexistent.omada.home.",
 			qtype:      dns.TypeA,
-			wantAnswer: []string{"nonexistent.omada.home.	300	IN	A	10.0.0.200"},
+			wantAnswer: []string{"nonexistent.omada.home.	60	IN	A	10.0.0.200"},
 		},
 		{ // another non-existent record should also fallback
 			qname:      "app.omada.home.",
 			qtype:      dns.TypeA,
-			wantAnswer: []string{"app.omada.home.	300	IN	A	10.0.0.200"},
+			wantAnswer: []string{"app.omada.home.	60	IN	A	10.0.0.200"},
 		},
 		{ // existing wildcard reservation should take precedence
 			qname:      "test.kubernetes.omada.home",
@@ -258,12 +258,12 @@ func TestUpdateWithLocalHostnameFallback(t *testing.T) {
 		{ // non-existent record should fallback to client-001 IP
 			qname:      "app.omada.home.",
 			qtype:      dns.TypeA,
-			wantAnswer: []string{"app.omada.home.	300	IN	A	10.0.0.101"},
+			wantAnswer: []string{"app.omada.home.	60	IN	A	10.0.0.101"},
 		},
 		{ // another non-existent record should also fallback
 			qname:      "service.omada.home.",
 			qtype:      dns.TypeA,
-			wantAnswer: []string{"service.omada.home.	300	IN	A	10.0.0.101"},
+			wantAnswer: []string{"service.omada.home.	60	IN	A	10.0.0.101"},
 		},
 		{ // existing wildcard reservation should take precedence
 			qname:      "test.kubernetes.omada.home",
@@ -324,7 +324,7 @@ func TestUpdateWithFqdnFallback(t *testing.T) {
 		{ // non-existent record should fallback to client-001 FQDN IP
 			qname:      "app.omada.home.",
 			qtype:      dns.TypeA,
-			wantAnswer: []string{"app.omada.home.	300	IN	A	10.0.0.101"},
+			wantAnswer: []string{"app.omada.home.	60	IN	A	10.0.0.101"},
 		},
 	}
 
